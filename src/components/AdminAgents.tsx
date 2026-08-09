@@ -1,18 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Megaphone, Database, Palette, Activity, Terminal } from "lucide-react";
+import { Sparkles, MessageSquare, Database, Palette, Activity, Terminal, Megaphone } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import AdminContent from "./AdminContent";
 import AdminSales from "./AdminSales";
 import AdminDataGaps from "./AdminDataGaps";
+import AdminMarketing from "./AdminMarketing";
 
-type AgentKey = "ops" | "growth" | "sales" | "data" | "design";
+type AgentKey = "ops" | "growth" | "sales" | "data" | "design" | "marketing";
 
 const AGENTS: { key: AgentKey; name: string; role: string; icon: typeof Sparkles }[] = [
   { key: "ops", name: "Agent Ops", role: "Daily status digest", icon: Activity },
   { key: "growth", name: "Agent Growth", role: "SEO guides & content", icon: Sparkles },
-  { key: "sales", name: "Agent Sales", role: "Restaurant outreach drafts", icon: Megaphone },
+  { key: "marketing", name: "Agent Marketing", role: "Social captions & promos", icon: Megaphone },
+  { key: "sales", name: "Agent Sales", role: "Restaurant outreach drafts", icon: MessageSquare },
   { key: "data", name: "Agent Data", role: "Listing completeness", icon: Database },
   { key: "design", name: "Agent Design", role: "Promo graphics", icon: Palette },
 ];
@@ -91,7 +93,7 @@ export default function AdminAgents() {
 
   return (
     <div>
-      <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-5">
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {AGENTS.map(({ key, name, role, icon: Icon }) => (
           <button
             key={key}
@@ -110,6 +112,7 @@ export default function AdminAgents() {
 
       {tab === "ops" && <OpsDigest />}
       {tab === "growth" && <AdminContent />}
+      {tab === "marketing" && <AdminMarketing />}
       {tab === "sales" && <AdminSales />}
       {tab === "data" && <AdminDataGaps />}
       {tab === "design" && <DesignPanel />}
