@@ -17,7 +17,7 @@ import AdminAnalytics from "./AdminAnalytics";
 import AdminCommunity from "./AdminCommunity";
 import AdminEvents from "./AdminEvents";
 import AdminUsers from "./AdminUsers";
-import AdminContent from "./AdminContent";
+import AdminAgents from "./AdminAgents";
 
 type Tab =
   | "applications"
@@ -30,7 +30,7 @@ type Tab =
   | "coupons"
   | "reviews"
   | "community"
-  | "content"
+  | "agents"
   | "analytics";
 
 export default function AdminDashboard() {
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
             "coupons",
             "reviews",
             "community",
-            "content",
+            "agents",
             "analytics",
           ] as Tab[]
         ).map((t) => (
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
         {tab === "coupons" && <AdminCoupons />}
         {tab === "reviews" && <AdminReviews />}
         {tab === "community" && <AdminCommunity />}
-        {tab === "content" && <AdminContent />}
+        {tab === "agents" && <AdminAgents />}
         {tab === "analytics" && <AdminAnalytics />}
       </div>
     </div>

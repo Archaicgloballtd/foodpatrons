@@ -9,6 +9,8 @@ create table if not exists public.reviews (
   customer_name text not null,
   rating int not null check (rating between 1 and 5),
   comment text,
+  owner_reply text,
+  owner_reply_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -30,3 +32,9 @@ drop policy if exists "Only admins can delete reviews" on public.reviews;
 create policy "Only admins can delete reviews"
   on public.reviews for delete
   using (public.is_admin());
+
+drop policy if exists "Staff can reply to their restaurant's reviews" on public.reviews;
+create policy "Staff can reply to their restaurant's reviews"
+  on public.reviews for update
+  using (public.is_admin() or public.is_staff_of(restaurant_id))
+  with check (public.is_admin() or public.is_staff_of(restaurant_id));
