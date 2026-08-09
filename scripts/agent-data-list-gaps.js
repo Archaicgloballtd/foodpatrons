@@ -17,13 +17,25 @@ function missing(r) {
   if (!r.phone) gaps.push("phone");
   if (!r.opening_hours) gaps.push("opening_hours");
   if (!r.description) gaps.push("description");
+  if ("email" in r && !r.email) gaps.push("email");
   return gaps;
 }
 
 async function main() {
-  const { data, error } = await supabase
+  // `email` is a newer column that may not exist yet on every environment —
+  // fall back to the select without it rather than erroring outright.
+  const withEmail = await supabase
     .from("restaurants")
-    .select("id, name, area, address, cuisine, phone, opening_hours, description");
+    .select("id, name, area, address, cuisine, phone, opening_hours, description, email");
+  let data = withEmail.data;
+  let error = withEmail.error;
+  if (error) {
+    const retry = await supabase
+      .from("restaurants")
+      .select("id, name, area, address, cuisine, phone, opening_hours, description");
+    data = retry.data;
+    error = retry.error;
+  }
   if (error) {
     console.error(error.message);
     process.exit(1);

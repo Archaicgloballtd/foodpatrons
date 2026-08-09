@@ -3,9 +3,9 @@
 // this can never overwrite existing real data, even if a finding is wrong.
 //
 // Usage: node scripts/agent-data-apply.js <path-to-findings.json>
-// findings.json shape: [{ "id": "<uuid>", "phone": "...", "opening_hours": "...", "description": "..." }, ...]
-// Any of phone/opening_hours/description may be omitted per entry — only
-// include fields you actually found and are confident about.
+// findings.json shape: [{ "id": "<uuid>", "phone": "...", "opening_hours": "...", "description": "...", "email": "..." }, ...]
+// Any field may be omitted per entry — only include fields you actually
+// found and are confident about.
 
 const fs = require("fs");
 const { createClient } = require("@supabase/supabase-js");
@@ -13,7 +13,7 @@ const { envVar } = require("./_env");
 
 const supabase = createClient(envVar("NEXT_PUBLIC_SUPABASE_URL"), envVar("SUPABASE_SERVICE_ROLE_KEY"));
 
-const ALLOWED_FIELDS = ["phone", "opening_hours", "description"];
+const ALLOWED_FIELDS = ["phone", "opening_hours", "description", "email"];
 
 async function main() {
   const filePath = process.argv[2];
@@ -36,11 +36,22 @@ async function main() {
       skipped++;
       continue;
     }
-    const { data: current, error: fetchError } = await supabase
+    const withEmail = await supabase
       .from("restaurants")
-      .select("phone, opening_hours, description")
+      .select("phone, opening_hours, description, email")
       .eq("id", finding.id)
       .maybeSingle();
+    let current = withEmail.data;
+    let fetchError = withEmail.error;
+    if (fetchError) {
+      const retry = await supabase
+        .from("restaurants")
+        .select("phone, opening_hours, description")
+        .eq("id", finding.id)
+        .maybeSingle();
+      current = retry.data;
+      fetchError = retry.error;
+    }
     if (fetchError || !current) {
       console.error(`Skipping ${finding.id}: not found (${fetchError?.message ?? "no row"})`);
       skipped++;
@@ -49,7 +60,7 @@ async function main() {
 
     const update = {};
     for (const field of ALLOWED_FIELDS) {
-      if (current[field] == null && finding[field]) {
+      if (field in current && current[field] == null && finding[field]) {
         update[field] = finding[field];
       }
     }
