@@ -7,14 +7,9 @@
 //
 // Usage: node scripts/generate-guides.js [--max=3]
 
-const fs = require("fs");
 const { createClient } = require("@supabase/supabase-js");
+const { envVar } = require("./_env");
 
-const envText = fs.readFileSync(".env.local", "utf8");
-function envVar(name) {
-  const m = envText.match(new RegExp(`^${name}=(.*)$`, "m"));
-  return m ? m[1].trim() : "";
-}
 const supabase = createClient(envVar("NEXT_PUBLIC_SUPABASE_URL"), envVar("SUPABASE_SERVICE_ROLE_KEY"));
 
 const maxArg = process.argv.find((a) => a.startsWith("--max="));
@@ -105,17 +100,40 @@ async function main() {
   function cityFromAddress(r) {
     if (!r.address) return null;
     const parts = r.address.split(",").map((p) => p.trim());
-    return parts[parts.length - 1] || null;
+    const last = parts[parts.length - 1] || null;
+    // Some addresses end right at the area name instead of a real city
+    // (e.g. "...Road, Dhanmondi" with no trailing ", Dhaka") — that's not a
+    // real city, so treat it the same as "no city found" rather than
+    // splitting the area into a second, bogus group keyed by its own name.
+    return last && last !== r.area ? last : null;
   }
 
-  // Group by (area, city)
+  // Resolve one canonical city per area (the most common non-null city found
+  // among that area's restaurants), instead of grouping per-restaurant —
+  // inconsistent address formatting shouldn't fragment a single real area
+  // into multiple guide candidates.
+  const cityVotesByArea = new Map();
+  for (const r of restaurants) {
+    if (!r.area) continue;
+    const city = cityFromAddress(r);
+    if (!city) continue;
+    if (!cityVotesByArea.has(r.area)) cityVotesByArea.set(r.area, new Map());
+    const votes = cityVotesByArea.get(r.area);
+    votes.set(city, (votes.get(city) ?? 0) + 1);
+  }
+  const cityByArea = new Map();
+  for (const [area, votes] of cityVotesByArea.entries()) {
+    const [topCity] = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
+    cityByArea.set(area, topCity);
+  }
+
+  // Group purely by area, using the resolved canonical city
   const areaGroups = new Map();
   for (const r of restaurants) {
     if (!r.area) continue;
-    const city = cityFromAddress(r) ?? "Bangladesh";
-    const key = `${r.area}|||${city}`;
-    if (!areaGroups.has(key)) areaGroups.set(key, { area: r.area, city, restaurants: [] });
-    areaGroups.get(key).restaurants.push(r);
+    const city = cityByArea.get(r.area) ?? "Bangladesh";
+    if (!areaGroups.has(r.area)) areaGroups.set(r.area, { area: r.area, city, restaurants: [] });
+    areaGroups.get(r.area).restaurants.push(r);
   }
 
   // Group by cuisine

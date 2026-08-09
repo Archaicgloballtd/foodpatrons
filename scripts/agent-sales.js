@@ -6,14 +6,9 @@
 //
 // Usage: node scripts/agent-sales.js [--max=20]
 
-const fs = require("fs");
 const { createClient } = require("@supabase/supabase-js");
+const { envVar } = require("./_env");
 
-const envText = fs.readFileSync(".env.local", "utf8");
-function envVar(name) {
-  const m = envText.match(new RegExp(`^${name}=(.*)$`, "m"));
-  return m ? m[1].trim() : "";
-}
 const supabase = createClient(envVar("NEXT_PUBLIC_SUPABASE_URL"), envVar("SUPABASE_SERVICE_ROLE_KEY"));
 
 const maxArg = process.argv.find((a) => a.startsWith("--max="));

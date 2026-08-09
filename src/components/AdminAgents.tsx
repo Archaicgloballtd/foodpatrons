@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, MessageSquare, Database, Palette, Activity, Terminal, Megaphone } from "lucide-react";
+import { Sparkles, MessageSquare, Database, Palette, Activity, Terminal, Megaphone, Download } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import AdminContent from "./AdminContent";
 import AdminSales from "./AdminSales";
@@ -66,24 +66,72 @@ function OpsDigest() {
 }
 
 function DesignPanel() {
+  const [files, setFiles] = useState<{ name: string; url: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase.storage.from("design-assets").list("", {
+        limit: 100,
+        sortBy: { column: "created_at", order: "desc" },
+      });
+      const withUrls = (data ?? []).map((f) => ({
+        name: f.name.replace(/\.jpg$/, "").replace(/-/g, " "),
+        url: supabase.storage.from("design-assets").getPublicUrl(f.name).data.publicUrl,
+      }));
+      setFiles(withUrls);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-5">
-      <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-        <Terminal className="h-4 w-4" />
-        Runs on request
+    <div>
+      <div className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Terminal className="h-4 w-4" />
+          Generated automatically, weekly — or on request
+        </div>
+        <p className="mt-2 text-sm text-muted-foreground">
+          On-brand, Instagram-square promo graphics for real restaurants already on foodpatrons — name, cuisine,
+          area, rating, and price tier, all pulled from the database. No invented dishes or photos.
+        </p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Ask in chat: <span className="font-semibold text-foreground">&quot;make a promo graphic for [restaurant]&quot;</span>{" "}
+          — or run it yourself:
+        </p>
+        <pre className="mt-2 overflow-x-auto rounded-xl bg-muted p-3 text-xs">
+          node scripts/agent-design.js &quot;Restaurant Name&quot;
+        </pre>
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">
-        Agent Design builds an on-brand, Instagram-square promo graphic for any real restaurant already on
-        foodpatrons — name, cuisine, area, rating, and price tier, all pulled from the database. No invented dishes
-        or photos.
-      </p>
-      <p className="mt-3 text-sm text-muted-foreground">
-        Ask in chat: <span className="font-semibold text-foreground">&quot;make a promo graphic for [restaurant]&quot;</span>{" "}
-        — or run it yourself:
-      </p>
-      <pre className="mt-2 overflow-x-auto rounded-xl bg-muted p-3 text-xs">
-        node scripts/agent-design.js &quot;Restaurant Name&quot;
-      </pre>
+
+      <h3 className="mb-3 mt-6 text-sm font-bold text-foreground">Generated so far ({files.length})</h3>
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading gallery…</p>
+      ) : files.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No graphics generated yet.</p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          {files.map((f) => (
+            <a
+              key={f.url}
+              href={f.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative overflow-hidden rounded-xl border border-border"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- Supabase Storage public URL, no domain allowlist for MVP */}
+              <img src={f.url} alt={f.name} className="aspect-square w-full object-cover" />
+              <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+                <span className="flex items-center gap-1 truncate text-xs font-semibold capitalize text-white">
+                  <Download className="h-3 w-3 shrink-0" />
+                  {f.name}
+                </span>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

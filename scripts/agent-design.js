@@ -1,26 +1,30 @@
 // Agent Design. Generates an on-brand, Instagram-square promo graphic for a
 // real restaurant already on foodpatrons — name, cuisine, area, rating, and
-// price tier only (all pulled from the database, nothing invented). Saves a
-// JPG you can post directly.
+// price tier only (all pulled from the database, nothing invented).
 //
-// Usage: node scripts/agent-design.js "<restaurant name or id>"
+// Single restaurant:  node scripts/agent-design.js "<restaurant name or id>"
+// Batch (automation): node scripts/agent-design.js --batch=10
+//   Uploads to the "design-assets" Supabase Storage bucket and skips any
+//   restaurant that already has a file there, so repeated runs only cover
+//   new ground.
 
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
 const { createClient } = require("@supabase/supabase-js");
+const { envVar } = require("./_env");
 
-const envText = fs.readFileSync(".env.local", "utf8");
-function envVar(name) {
-  const m = envText.match(new RegExp(`^${name}=(.*)$`, "m"));
-  return m ? m[1].trim() : "";
-}
 const supabase = createClient(envVar("NEXT_PUBLIC_SUPABASE_URL"), envVar("SUPABASE_SERVICE_ROLE_KEY"));
 
 const TIER_LABEL = { "৳": "Budget-friendly", "৳৳": "Mid-range", "৳৳৳": "Upscale" };
+const BUCKET = "design-assets";
 
 function escapeXml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
 function buildSvg(r) {
@@ -52,13 +56,12 @@ function buildSvg(r) {
 </svg>`;
 }
 
-async function main() {
-  const query = process.argv[2];
-  if (!query) {
-    console.error('Usage: node scripts/agent-design.js "<restaurant name or id>"');
-    process.exit(1);
-  }
+async function renderJpeg(restaurant) {
+  const svg = buildSvg(restaurant);
+  return sharp(Buffer.from(svg)).flatten({ background: "#1B2560" }).jpeg({ quality: 95 }).toBuffer();
+}
 
+async function runSingle(query) {
   const isUuid = /^[0-9a-f-]{36}$/i.test(query);
   const { data: restaurant, error } = isUuid
     ? await supabase.from("restaurants").select("id, name, cuisine, area, rating, price_range").eq("id", query).maybeSingle()
@@ -69,14 +72,74 @@ async function main() {
     process.exit(1);
   }
 
-  const svg = buildSvg(restaurant);
-  const outDir = path.join(process.cwd(), "agent-design-output");
+  const buffer = await renderJpeg(restaurant);
+  const outDir = path.join(__dirname, "..", "agent-design-output");
   fs.mkdirSync(outDir, { recursive: true });
-  const safeName = restaurant.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-  const outPath = path.join(outDir, `${safeName}.jpg`);
-
-  await sharp(Buffer.from(svg)).flatten({ background: "#1B2560" }).jpeg({ quality: 95 }).toFile(outPath);
+  const outPath = path.join(outDir, `${slugify(restaurant.name)}.jpg`);
+  fs.writeFileSync(outPath, buffer);
   console.log(`Saved: ${outPath}`);
+}
+
+async function runBatch(max) {
+  const { data: restaurants, error } = await supabase
+    .from("restaurants")
+    .select("id, name, cuisine, area, rating, price_range, cover_image_url, image_url")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Failed to fetch restaurants:", error.message);
+    process.exit(1);
+  }
+
+  const { data: existingFiles, error: listError } = await supabase.storage.from(BUCKET).list("", { limit: 5000 });
+  if (listError) {
+    console.error("Failed to list bucket:", listError.message);
+    process.exit(1);
+  }
+  const existingSlugs = new Set((existingFiles ?? []).map((f) => f.name.replace(/\.jpg$/, "")));
+
+  // Prioritize restaurants that don't have a real photo — the promo card is
+  // most useful for them — then fill remaining slots with anything left.
+  const withoutPhoto = restaurants.filter((r) => !existingSlugs.has(slugify(r.name)) && !r.cover_image_url && !r.image_url);
+  const rest = restaurants.filter((r) => !existingSlugs.has(slugify(r.name)) && (r.cover_image_url || r.image_url));
+  const candidates = [...withoutPhoto, ...rest].slice(0, max);
+
+  if (candidates.length === 0) {
+    console.log("No new restaurants need a promo graphic — every one already has an asset.");
+    return;
+  }
+
+  const created = [];
+  for (const r of candidates) {
+    const buffer = await renderJpeg(r);
+    const fileName = `${slugify(r.name)}.jpg`;
+    const { error: uploadError } = await supabase.storage.from(BUCKET).upload(fileName, buffer, {
+      contentType: "image/jpeg",
+      upsert: false,
+    });
+    if (uploadError) {
+      console.error(`Failed to upload ${r.name}:`, uploadError.message);
+      continue;
+    }
+    const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(fileName);
+    created.push({ name: r.name, url: pub.publicUrl });
+  }
+
+  console.log(`Generated ${created.length} new promo graphic(s):`);
+  for (const c of created) console.log(` - ${c.name}: ${c.url}`);
+}
+
+async function main() {
+  const batchArg = process.argv.find((a) => a.startsWith("--batch="));
+  if (batchArg) {
+    await runBatch(Number(batchArg.split("=")[1]));
+    return;
+  }
+  const query = process.argv[2];
+  if (!query) {
+    console.error('Usage: node scripts/agent-design.js "<restaurant name or id>"  OR  node scripts/agent-design.js --batch=10');
+    process.exit(1);
+  }
+  await runSingle(query);
 }
 
 main();
