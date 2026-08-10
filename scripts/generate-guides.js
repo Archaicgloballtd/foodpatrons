@@ -100,7 +100,9 @@ async function main() {
   function cityFromAddress(r) {
     if (!r.address) return null;
     const parts = r.address.split(",").map((p) => p.trim());
-    const last = parts[parts.length - 1] || null;
+    // Strip a trailing postal code (e.g. "Mymensingh 2200" -> "Mymensingh")
+    // so it never leaks into a guide title.
+    const last = (parts[parts.length - 1] || "").replace(/\s+\d{3,5}$/, "").trim() || null;
     // Some addresses end right at the area name instead of a real city
     // (e.g. "...Road, Dhanmondi" with no trailing ", Dhaka") — that's not a
     // real city, so treat it the same as "no city found" rather than
