@@ -5,6 +5,7 @@ import { Sparkles, MessageSquare, Database, Palette, Activity, Terminal, Megapho
 import { supabase } from "@/lib/supabase";
 import AdminContent from "./AdminContent";
 import AdminSales from "./AdminSales";
+import AdminNewsletter from "./AdminNewsletter";
 import AdminDataGaps from "./AdminDataGaps";
 import AdminMarketing from "./AdminMarketing";
 
@@ -136,6 +137,34 @@ function DesignPanel() {
   );
 }
 
+function SalesPanel() {
+  const [subTab, setSubTab] = useState<"outreach" | "newsletter">("outreach");
+  return (
+    <div>
+      <div className="mb-4 flex gap-2">
+        {(
+          [
+            ["outreach", "Restaurant outreach"],
+            ["newsletter", "Newsletter"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSubTab(key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+              subTab === key ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {subTab === "outreach" ? <AdminSales /> : <AdminNewsletter />}
+    </div>
+  );
+}
+
 export default function AdminAgents() {
   const [tab, setTab] = useState<AgentKey>("ops");
 
@@ -161,7 +190,7 @@ export default function AdminAgents() {
       {tab === "ops" && <OpsDigest />}
       {tab === "growth" && <AdminContent />}
       {tab === "marketing" && <AdminMarketing />}
-      {tab === "sales" && <AdminSales />}
+      {tab === "sales" && <SalesPanel />}
       {tab === "data" && <AdminDataGaps />}
       {tab === "design" && <DesignPanel />}
     </div>

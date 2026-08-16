@@ -2,11 +2,15 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { LogoMark } from "./Logo";
 import { BurgerIcon, PizzaIcon, DrinkIcon, DonutIcon, NoodleBowlIcon } from "./FoodIcons";
+import NewsletterSignup from "./NewsletterSignup";
 
 export default function Footer({ adSlot }: { adSlot?: ReactNode }) {
   return (
     <footer className="border-t border-border bg-white px-6 py-10 text-center text-sm text-muted-foreground">
       {adSlot && <div className="mx-auto mb-6 max-w-md">{adSlot}</div>}
+      <div className="mb-8">
+        <NewsletterSignup />
+      </div>
       <div className="mb-4 flex items-center justify-center gap-3 opacity-70" aria-hidden="true">
         <BurgerIcon size={22} />
         <PizzaIcon size={22} />
