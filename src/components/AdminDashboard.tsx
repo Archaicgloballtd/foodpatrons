@@ -18,6 +18,7 @@ import AdminCommunity from "./AdminCommunity";
 import AdminEvents from "./AdminEvents";
 import AdminUsers from "./AdminUsers";
 import AdminAgents from "./AdminAgents";
+import AdminCommissions from "./AdminCommissions";
 
 type Tab =
   | "applications"
@@ -31,6 +32,7 @@ type Tab =
   | "reviews"
   | "community"
   | "agents"
+  | "commissions"
   | "analytics";
 
 export default function AdminDashboard() {
@@ -81,6 +83,7 @@ export default function AdminDashboard() {
             "reviews",
             "community",
             "agents",
+            "commissions",
             "analytics",
           ] as Tab[]
         ).map((t) => (
@@ -109,6 +112,7 @@ export default function AdminDashboard() {
         {tab === "reviews" && <AdminReviews />}
         {tab === "community" && <AdminCommunity />}
         {tab === "agents" && <AdminAgents />}
+        {tab === "commissions" && <AdminCommissions />}
         {tab === "analytics" && <AdminAnalytics />}
       </div>
     </div>

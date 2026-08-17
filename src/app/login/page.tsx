@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Store, User as UserIcon, Clock, CheckCircle2, XCircle, Search, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,9 +15,19 @@ type ClaimMode = "existing" | "new";
 type RestaurantOption = { id: string; name: string; area: string | null; cuisine: string | null };
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const referredByCode = searchParams.get("ref");
   const { user, profile, loading } = useSession();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(referredByCode ? "signup" : "signin");
   const [accountType, setAccountType] = useState<AccountType>("customer");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -140,6 +150,7 @@ export default function LoginPage() {
             message,
           }
         : { account_type: "customer", restaurant_name: "", restaurant_id: "", contact_phone: "", message: "" };
+    if (referredByCode) metadata.referred_by_code = referredByCode;
     const { error } = await signUp(email, password, fullName, metadata);
     setSubmitting(false);
     if (error) {
@@ -226,6 +237,9 @@ export default function LoginPage() {
             ? "For customers, restaurant owners, and staff."
             : "Customers don't need an account to browse or reserve — sign up here if you run a restaurant, or want one anyway."}
         </p>
+        {mode === "signup" && referredByCode && (
+          <p className="mt-2 rounded-lg bg-orange-50 px-3 py-2 text-xs text-orange-800">You were invited by a friend — thanks for joining!</p>
+        )}
 
         {mode === "signup" && (
           <div className="mt-5 grid grid-cols-2 gap-2">

@@ -14,7 +14,7 @@ type Reservation = {
   party_size: number;
   reservation_date: string;
   reservation_time: string;
-  status: "pending" | "confirmed" | "cancelled";
+  status: "pending" | "confirmed" | "cancelled" | "fulfilled" | "no_show";
 };
 
 export default function DashboardReservations({ restaurantId }: { restaurantId: string }) {
@@ -22,15 +22,20 @@ export default function DashboardReservations({ restaurantId }: { restaurantId: 
   const [loading, setLoading] = useState(true);
   const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
   const [toast, setToast] = useState<string | null>(null);
+  const [commissionPerReservation, setCommissionPerReservation] = useState<number | null>(null);
 
   async function load() {
     setLoading(true);
-    const { data } = await supabase
-      .from("reservations")
-      .select("id, code, customer_name, customer_phone, party_size, reservation_date, reservation_time, status")
-      .eq("restaurant_id", restaurantId)
-      .order("reservation_date", { ascending: true });
-    setReservations(data ?? []);
+    const [reservationsRes, restaurantRes] = await Promise.all([
+      supabase
+        .from("reservations")
+        .select("id, code, customer_name, customer_phone, party_size, reservation_date, reservation_time, status")
+        .eq("restaurant_id", restaurantId)
+        .order("reservation_date", { ascending: true }),
+      supabase.from("restaurants").select("commission_per_reservation").eq("id", restaurantId).maybeSingle(),
+    ]);
+    setReservations(reservationsRes.data ?? []);
+    setCommissionPerReservation(restaurantRes.data?.commission_per_reservation ?? null);
     setLoading(false);
   }
 
@@ -60,8 +65,19 @@ export default function DashboardReservations({ restaurantId }: { restaurantId: 
     setPermission(result);
   }
 
-  async function updateStatus(id: string, status: "confirmed" | "cancelled") {
+  async function updateStatus(id: string, status: "confirmed" | "cancelled" | "fulfilled" | "no_show") {
     await supabase.from("reservations").update({ status }).eq("id", id);
+    if (status === "fulfilled" && commissionPerReservation) {
+      await supabase
+        .from("commission_ledger")
+        .insert({ restaurant_id: restaurantId, reservation_id: id, amount: commissionPerReservation })
+        .then(({ error }) => {
+          // A reservation can only be marked fulfilled once (unique constraint
+          // on reservation_id), so a duplicate insert here is expected if
+          // this is somehow triggered twice — not a real error to surface.
+          if (error && error.code !== "23505") console.error(error.message);
+        });
+    }
     load();
   }
 
@@ -134,12 +150,14 @@ export default function DashboardReservations({ restaurantId }: { restaurantId: 
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                         r.status === "confirmed"
                           ? "bg-green-100 text-green-700"
-                          : r.status === "cancelled"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
+                          : r.status === "fulfilled"
+                            ? "bg-secondary/15 text-secondary"
+                            : r.status === "cancelled" || r.status === "no_show"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-yellow-100 text-yellow-700"
                       }`}
                     >
-                      {r.status}
+                      {r.status.replace("_", " ")}
                     </span>
                   </td>
                   <td className="py-2 pr-4">
@@ -158,6 +176,24 @@ export default function DashboardReservations({ restaurantId }: { restaurantId: 
                           className="rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-700"
                         >
                           Cancel
+                        </button>
+                      </div>
+                    )}
+                    {r.status === "confirmed" && (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(r.id, "fulfilled")}
+                          className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-secondary-foreground hover:opacity-90"
+                        >
+                          Mark fulfilled
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateStatus(r.id, "no_show")}
+                          className="rounded-full border border-destructive/30 px-3 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                        >
+                          No-show
                         </button>
                       </div>
                     )}

@@ -28,8 +28,14 @@ export default function Footer({ adSlot }: { adSlot?: ReactNode }) {
         <Link href="/guides" className="text-muted-foreground underline hover:text-foreground">
           Guides
         </Link>
+        <Link href="/advertise" className="text-muted-foreground underline hover:text-foreground">
+          Advertise with us
+        </Link>
         <Link href="/privacy" className="text-muted-foreground underline hover:text-foreground">
           Privacy policy
+        </Link>
+        <Link href="/terms" className="text-muted-foreground underline hover:text-foreground">
+          Terms of service
         </Link>
       </div>
     </footer>

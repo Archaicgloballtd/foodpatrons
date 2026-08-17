@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Bell, BellRing, Heart, Trash2, LogOut, Store, ShieldCheck, Award } from "lucide-react";
+import { User, Bell, BellRing, Heart, Trash2, LogOut, Store, ShieldCheck, Award, Gift, Copy, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { signOut, useSession } from "@/lib/auth";
@@ -30,6 +30,14 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("default");
   const [savedCount, setSavedCount] = useState(0);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  async function copyReferralLink() {
+    if (!profile?.referral_code) return;
+    await navigator.clipboard.writeText(`${window.location.origin}/login?ref=${profile.referral_code}`);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 1800);
+  }
 
   useEffect(() => {
     if (!profile) return;
@@ -198,6 +206,37 @@ export default function ProfilePage() {
                   +{p.points} · {p.action}
                 </span>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Invite friends */}
+        {profile?.referral_code && (
+          <section className="mt-6 rounded-2xl border border-border bg-card p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-accent">
+                <Gift className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-foreground">Invite friends</h2>
+                <p className="text-xs text-muted-foreground">Share your link — anyone who signs up through it is credited to you.</p>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={`foodpatrons.com/login?ref=${profile.referral_code}`}
+                className="flex-1 truncate rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground/80 outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyReferralLink}
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90"
+              >
+                {linkCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {linkCopied ? "Copied" : "Copy"}
+              </button>
             </div>
           </section>
         )}

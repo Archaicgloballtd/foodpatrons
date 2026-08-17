@@ -8,6 +8,15 @@ import type { Ad } from "@/lib/adSlots";
 
 const SEEN_KEY = "fp_popup_seen";
 
+function trackAdEvent(adId: string, eventType: "impression" | "click") {
+  fetch("/api/track-ad", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adId, eventType }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 export default function PopupAd() {
   const [ad, setAd] = useState<Ad | null>(null);
   const [visible, setVisible] = useState(false);
@@ -21,7 +30,10 @@ export default function PopupAd() {
       if (cancelled || ads.length === 0) return;
       setAd(ads[0]);
       timer = setTimeout(() => {
-        if (!cancelled) setVisible(true);
+        if (!cancelled) {
+          setVisible(true);
+          trackAdEvent(ads[0].id, "impression");
+        }
       }, 1500);
     });
 
@@ -79,7 +91,10 @@ export default function PopupAd() {
                   href={ad.link_url}
                   target="_blank"
                   rel="noopener noreferrer sponsored"
-                  onClick={handleClose}
+                  onClick={() => {
+                    trackAdEvent(ad.id, "click");
+                    handleClose();
+                  }}
                   className="mt-4 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
                 >
                   Learn more

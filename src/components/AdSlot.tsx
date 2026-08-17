@@ -1,6 +1,22 @@
+"use client";
+
+import { useEffect } from "react";
 import type { Ad } from "@/lib/adSlots";
 
+function trackAdEvent(adId: string, eventType: "impression" | "click") {
+  fetch("/api/track-ad", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ adId, eventType }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 export default function AdSlot({ ad, className }: { ad: Ad; className?: string }) {
+  useEffect(() => {
+    trackAdEvent(ad.id, "impression");
+  }, [ad.id]);
+
   const card = (
     <div
       className={`overflow-hidden rounded-2xl border border-border bg-card ${className ?? ""}`}
@@ -23,7 +39,13 @@ export default function AdSlot({ ad, className }: { ad: Ad; className?: string }
 
   if (ad.link_url) {
     return (
-      <a href={ad.link_url} target="_blank" rel="noopener noreferrer sponsored" className="block">
+      <a
+        href={ad.link_url}
+        target="_blank"
+        rel="noopener noreferrer sponsored"
+        className="block"
+        onClick={() => trackAdEvent(ad.id, "click")}
+      >
         {card}
       </a>
     );

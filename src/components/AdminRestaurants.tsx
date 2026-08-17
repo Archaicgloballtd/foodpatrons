@@ -17,6 +17,7 @@ type AdminRestaurant = {
   is_featured: boolean;
   is_open: boolean;
   status: "pending" | "approved" | "rejected";
+  commission_per_reservation: number | null;
 };
 
 type RestaurantInput = {
@@ -34,6 +35,7 @@ type RestaurantInput = {
   cover_image_url: string;
   is_featured: boolean;
   status: "pending" | "approved" | "rejected";
+  commission_per_reservation: string;
 };
 
 const emptyForm: RestaurantInput = {
@@ -51,6 +53,7 @@ const emptyForm: RestaurantInput = {
   cover_image_url: "",
   is_featured: false,
   status: "approved",
+  commission_per_reservation: "",
 };
 
 function slugify(name: string): string {
@@ -82,6 +85,7 @@ function toPayload(input: RestaurantInput) {
     is_featured: input.is_featured,
     status: input.status,
     is_approved: input.status === "approved",
+    commission_per_reservation: input.commission_per_reservation ? Number(input.commission_per_reservation) : null,
   };
 }
 
@@ -100,7 +104,7 @@ export default function AdminRestaurants() {
       const { data, error } = await supabase
         .from("restaurants")
         .select(
-          "id, name, cuisine, area, address, latitude, longitude, cover_image_url, image_url, is_approved, is_featured, is_open, status",
+          "id, name, cuisine, area, address, latitude, longitude, cover_image_url, image_url, is_approved, is_featured, is_open, status, commission_per_reservation",
         )
         .order("name");
       if (error) throw error;
@@ -135,6 +139,7 @@ export default function AdminRestaurants() {
       cover_image_url: r.cover_image_url ?? r.image_url ?? "",
       is_featured: r.is_featured,
       status: r.status,
+      commission_per_reservation: r.commission_per_reservation?.toString() ?? "",
     });
     setShowForm(true);
   }
@@ -222,6 +227,13 @@ export default function AdminRestaurants() {
             label="Cover image URL"
             value={form.cover_image_url}
             onChange={(v) => setForm({ ...form, cover_image_url: v })}
+            span2
+          />
+          <Field
+            label="Commission per fulfilled reservation (BDT, leave blank for none)"
+            type="number"
+            value={form.commission_per_reservation}
+            onChange={(v) => setForm({ ...form, commission_per_reservation: v })}
             span2
           />
 

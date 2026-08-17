@@ -10,10 +10,11 @@ export type Profile = {
   phone: string | null;
   role: "customer" | "staff" | "admin";
   points: number;
+  referral_code: string | null;
 };
 
-function isMissingPointsColumn(message: string): boolean {
-  return message.includes("points") && message.includes("does not exist");
+function isMissingColumn(message: string, column: string): boolean {
+  return message.includes(column) && message.includes("does not exist");
 }
 
 export function useSession() {
@@ -34,18 +35,18 @@ export function useSession() {
       }
       const { data: initialData, error } = await supabase
         .from("profiles")
-        .select("id, full_name, phone, role, points")
+        .select("id, full_name, phone, role, points, referral_code")
         .eq("id", currentUser.id)
         .maybeSingle();
-      let data = initialData;
+      let data: Profile | null = initialData;
 
-      if (error && isMissingPointsColumn(error.message)) {
+      if (error && (isMissingColumn(error.message, "points") || isMissingColumn(error.message, "referral_code"))) {
         const retry = await supabase
           .from("profiles")
           .select("id, full_name, phone, role")
           .eq("id", currentUser.id)
           .maybeSingle();
-        data = retry.data ? { ...retry.data, points: 0 } : null;
+        data = retry.data ? { ...retry.data, points: 0, referral_code: null } : null;
       }
 
       if (active) {

@@ -10,11 +10,12 @@ import DashboardOffers from "@/components/DashboardOffers";
 import DashboardMenu from "@/components/DashboardMenu";
 import DashboardRestaurantProfile from "@/components/DashboardRestaurantProfile";
 import DashboardReviews from "@/components/DashboardReviews";
+import DashboardAds from "@/components/DashboardAds";
 import { useSession } from "@/lib/auth";
 import { supabase } from "@/lib/supabase";
 
 type RestaurantOption = { id: string; name: string };
-type Tab = "reservations" | "coupons" | "offers" | "menu" | "reviews" | "profile";
+type Tab = "reservations" | "coupons" | "offers" | "menu" | "reviews" | "profile" | "ads";
 
 function DashboardContent() {
   const { user, profile } = useSession();
@@ -76,7 +77,7 @@ function DashboardContent() {
       </select>
 
       <div className="mt-6 flex gap-2 border-b border-black/10 dark:border-white/10">
-        {(["reservations", "coupons", "offers", "menu", "reviews", "profile"] as Tab[]).map((t) => (
+        {(["reservations", "coupons", "offers", "menu", "reviews", "ads", "profile"] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -96,6 +97,7 @@ function DashboardContent() {
         {selectedId && tab === "offers" && <DashboardOffers restaurantId={selectedId} />}
         {selectedId && tab === "menu" && <DashboardMenu restaurantId={selectedId} />}
         {selectedId && tab === "reviews" && <DashboardReviews restaurantId={selectedId} />}
+        {selectedId && tab === "ads" && <DashboardAds restaurantId={selectedId} />}
         {selectedId && tab === "profile" && <DashboardRestaurantProfile restaurantId={selectedId} />}
       </div>
     </div>

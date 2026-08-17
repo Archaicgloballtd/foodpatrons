@@ -14,6 +14,14 @@ type AdminAd = {
   active: boolean;
   start_date: string | null;
   end_date: string | null;
+  restaurant_id: string | null;
+  price_amount: number | null;
+  currency: string;
+  payment_status: "unpaid" | "pending_review" | "paid";
+  requested_at: string | null;
+  restaurants: { name: string } | null;
+  impressions: number;
+  clicks: number;
 };
 
 type AdInput = {
@@ -51,16 +59,41 @@ export default function AdminAds() {
     try {
       const { data, error } = await supabase
         .from("ads")
-        .select("id, title, description, image_url, link_url, slot, active, start_date, end_date")
+        .select(
+          "id, title, description, image_url, link_url, slot, active, start_date, end_date, restaurant_id, price_amount, currency, payment_status, requested_at, restaurants(name)",
+        )
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setAds(data as AdminAd[]);
+
+      const rows = (data ?? []) as unknown as Omit<AdminAd, "impressions" | "clicks">[];
+      const counts = await Promise.all(
+        rows.map(async (ad) => {
+          const [impressions, clicks] = await Promise.all([
+            supabase.from("ad_events").select("*", { count: "exact", head: true }).eq("ad_id", ad.id).eq("event_type", "impression"),
+            supabase.from("ad_events").select("*", { count: "exact", head: true }).eq("ad_id", ad.id).eq("event_type", "click"),
+          ]);
+          return { impressions: impressions.count ?? 0, clicks: clicks.count ?? 0 };
+        }),
+      );
+
+      setAds(rows.map((ad, i) => ({ ...ad, ...counts[i] })));
       setError("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't load ads.");
     } finally {
       setLoading(false);
     }
+  }
+
+  async function approveRequest(id: string) {
+    await supabase.from("ads").update({ payment_status: "paid", active: true }).eq("id", id);
+    load();
+  }
+
+  async function declineRequest(id: string) {
+    if (!window.confirm("Decline and remove this ad request?")) return;
+    await supabase.from("ads").delete().eq("id", id);
+    load();
   }
 
   useEffect(() => {
@@ -97,8 +130,45 @@ export default function AdminAds() {
     load();
   }
 
+  const pending = ads.filter((ad) => ad.payment_status === "pending_review");
+
   return (
     <div>
+      {pending.length > 0 && (
+        <div className="mb-6">
+          <h3 className="mb-2 text-sm font-bold text-foreground">Pending restaurant requests ({pending.length})</h3>
+          <div className="flex flex-col gap-2">
+            {pending.map((ad) => (
+              <div key={ad.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-yellow-300 bg-yellow-50 p-3 text-sm">
+                <div>
+                  <p className="font-semibold text-foreground">{ad.restaurants?.name ?? "Unknown restaurant"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {AD_SLOTS.find((s) => s.key === ad.slot)?.label ?? ad.slot} · {ad.currency} {ad.price_amount?.toLocaleString() ?? "—"}/mo
+                    {ad.requested_at && ` · requested ${new Date(ad.requested_at).toLocaleDateString()}`}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => approveRequest(ad.id)}
+                    className="rounded-full bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700"
+                  >
+                    Approve &amp; activate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => declineRequest(ad.id)}
+                    className="rounded-full border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setShowForm(!showForm)}
@@ -199,6 +269,7 @@ export default function AdminAds() {
                 <p className="text-xs text-muted-foreground">
                   {AD_SLOTS.find((s) => s.key === ad.slot)?.label ?? ad.slot} ·{" "}
                   {ad.active ? "Active" : "Inactive"}
+                  {ad.restaurant_id && ` · ${ad.impressions} views, ${ad.clicks} clicks`}
                 </p>
               </div>
               <button
