@@ -129,12 +129,15 @@ async function main() {
       await page.getByLabel("Email").fill(BOT.email);
       await page.getByLabel("Password").fill(BOT_PASSWORD);
       await page.getByRole("button", { name: /sign in/i }).click();
+      // A successful sign-in redirects to "/" (shows "Welcome back, <name>")
+      // rather than staying on /login — only an already-signed-in visit to
+      // /login itself shows "Signed in as".
       try {
-        await page.getByText("Signed in as").waitFor({ timeout: 8000 });
+        await page.waitForURL((url) => !url.pathname.startsWith("/login"), { timeout: 8000 });
         signedIn = true;
       } catch {
         const errorText = await page.locator("p.text-sm.text-red-600").textContent().catch(() => null);
-        report("bug", "Sign in", errorText ? `Login failed with error: ${errorText}` : "No 'Signed in as' confirmation and no visible error message after submitting login.");
+        report("bug", "Sign in", errorText ? `Login failed with error: ${errorText}` : "Still on /login 8s after submitting — no redirect and no visible error message.");
       }
     });
 
@@ -222,9 +225,15 @@ async function main() {
         return;
       }
       await page.goto("/community", { waitUntil: "domcontentloaded" });
+      // Client-side session hydration can take a beat right after a fresh
+      // navigation — wait for the composer rather than checking instantly,
+      // same as everywhere else the site depends on a client-rendered
+      // auth state.
       const composer = page.getByPlaceholder(/what's happening in dhaka/i);
-      if (!(await composer.count())) {
-        report("bug", "Community post", "Signed in successfully, but the post composer still isn't showing on /community.");
+      try {
+        await composer.waitFor({ timeout: 5000 });
+      } catch {
+        report("bug", "Community post", "Signed in successfully, but the post composer still isn't showing on /community after 5s.");
         return;
       }
       await composer.fill("Automated QA test post — should be deleted immediately by the bot's cleanup step.");
