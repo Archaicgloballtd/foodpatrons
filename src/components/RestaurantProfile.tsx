@@ -21,6 +21,7 @@ import ReservationModal from "./ReservationModal";
 import ClaimOfferModal from "./ClaimOfferModal";
 import RestaurantReviews from "./RestaurantReviews";
 import RestaurantMenu from "./RestaurantMenu";
+import RestaurantMeetups from "./RestaurantMeetups";
 
 export default function RestaurantProfile({ restaurant }: { restaurant: Restaurant }) {
   const [showReserve, setShowReserve] = useState(false);
@@ -158,6 +159,8 @@ export default function RestaurantProfile({ restaurant }: { restaurant: Restaura
         )}
 
         <RestaurantMenu restaurantId={restaurant.id} />
+
+        <RestaurantMeetups restaurantId={restaurant.id} />
 
         <RestaurantReviews restaurantId={restaurant.id} />
       </div>

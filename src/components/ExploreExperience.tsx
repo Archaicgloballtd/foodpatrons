@@ -9,6 +9,7 @@ import RestaurantCard from "./RestaurantCard";
 import RestaurantMap from "./RestaurantMap";
 import EmptyState from "./EmptyState";
 import LazyMount from "./LazyMount";
+import MeetupsStrip from "./MeetupsStrip";
 
 type LocationStatus = "idle" | "loading" | "success" | "error";
 type SortOption = "recommended" | "rating" | "distance" | "name";
@@ -225,6 +226,8 @@ export default function ExploreExperience({
             <RestaurantMap restaurants={filtered} userLocation={userLocation} mapHeightClass="h-80 sm:h-[420px]" />
           </LazyMount>
         </div>
+
+        <MeetupsStrip />
 
         {/* Results — browse and pick a restaurant to reserve */}
         <div className="mt-6">
