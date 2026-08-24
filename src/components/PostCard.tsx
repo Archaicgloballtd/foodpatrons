@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, MessageCircle, Trash2, Send } from "lucide-react";
+import Link from "next/link";
+import { Heart, MessageCircle, Trash2, Send, MapPin, BadgeCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Post, Comment } from "@/lib/community";
 
@@ -106,16 +107,29 @@ export default function PostCard({
   }
 
   const canDeletePost = isAdmin || post.author_id === currentUserId;
+  const restaurantPhoto = post.restaurants?.cover_image_url || post.restaurants?.image_url;
 
   return (
-    <article className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-start gap-3">
+    <article className="overflow-hidden rounded-2xl border border-border bg-card">
+      {restaurantPhoto && (
+        <Link href={`/restaurant/${post.restaurants!.id}`} className="block">
+          {/* eslint-disable-next-line @next/next/no-img-element -- real restaurant photo already used elsewhere without a domain allowlist */}
+          <img src={restaurantPhoto} alt={post.restaurants!.name} className="h-48 w-full object-cover" />
+        </Link>
+      )}
+      <div className="flex items-start gap-3 p-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary text-xs font-bold text-secondary-foreground">
           {initialsFor(post.profiles?.full_name)}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 text-sm">
             <span className="font-semibold text-foreground">{post.profiles?.full_name || "foodpatrons user"}</span>
+            {post.profiles?.is_official && (
+              <span className="flex items-center gap-0.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary">
+                <BadgeCheck className="h-3 w-3" />
+                foodpatrons
+              </span>
+            )}
             <span className="text-muted-foreground">· {timeAgo(post.created_at)}</span>
             {post.topics && (
               <span className="ml-auto shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
@@ -124,6 +138,15 @@ export default function PostCard({
             )}
           </div>
           <p className="mt-1 whitespace-pre-wrap text-sm text-foreground/90">{post.content}</p>
+          {post.restaurants && !restaurantPhoto && (
+            <Link
+              href={`/restaurant/${post.restaurants.id}`}
+              className="mt-1.5 flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-foreground/70 hover:text-primary"
+            >
+              <MapPin className="h-3 w-3" />
+              {post.restaurants.name}
+            </Link>
+          )}
 
           <div className="mt-3 flex items-center gap-4 text-muted-foreground">
             <button

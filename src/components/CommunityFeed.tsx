@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Send, MessagesSquare } from "lucide-react";
+import { Send, MessagesSquare, MapPin, Search, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useSession } from "@/lib/auth";
 import type { Topic, Post } from "@/lib/community";
 import PostCard from "./PostCard";
 import EmptyState from "./EmptyState";
 
-const POST_SELECT = "id, author_id, topic_id, content, created_at, like_count, comment_count, profiles(full_name), topics(slug, name)";
+const POST_SELECT =
+  "id, author_id, topic_id, content, created_at, like_count, comment_count, restaurant_id, profiles(full_name, is_official), topics(slug, name), restaurants(id, name, area, cover_image_url, image_url)";
+
+type RestaurantOption = { id: string; name: string; area: string | null; cuisine: string | null };
 
 export default function CommunityFeed({ topics }: { topics: Topic[] }) {
   const { user, profile } = useSession();
@@ -20,6 +23,29 @@ export default function CommunityFeed({ topics }: { topics: Topic[] }) {
   const [composerContent, setComposerContent] = useState("");
   const [composerTopicId, setComposerTopicId] = useState(topics[0]?.id ?? "");
   const [posting, setPosting] = useState(false);
+  const [restaurantPickerOpen, setRestaurantPickerOpen] = useState(false);
+  const [restaurantQuery, setRestaurantQuery] = useState("");
+  const [restaurantOptions, setRestaurantOptions] = useState<RestaurantOption[]>([]);
+  const [restaurantsLoaded, setRestaurantsLoaded] = useState(false);
+  const [taggedRestaurant, setTaggedRestaurant] = useState<RestaurantOption | null>(null);
+
+  useEffect(() => {
+    if (!restaurantPickerOpen || restaurantsLoaded) return;
+    supabase
+      .from("restaurants")
+      .select("id, name, area, cuisine")
+      .order("name")
+      .then(({ data }) => {
+        setRestaurantOptions((data as RestaurantOption[]) ?? []);
+        setRestaurantsLoaded(true);
+      });
+  }, [restaurantPickerOpen, restaurantsLoaded]);
+
+  const filteredRestaurantOptions = useMemo(() => {
+    const q = restaurantQuery.trim().toLowerCase();
+    const list = !q ? restaurantOptions : restaurantOptions.filter((r) => [r.name, r.area, r.cuisine].some((f) => f?.toLowerCase().includes(q)));
+    return list.slice(0, 8);
+  }, [restaurantOptions, restaurantQuery]);
 
   async function loadPosts(topicSlug: string) {
     setLoading(true);
@@ -78,7 +104,12 @@ export default function CommunityFeed({ topics }: { topics: Topic[] }) {
     setPosting(true);
     const { data, error } = await supabase
       .from("posts")
-      .insert({ author_id: user.id, topic_id: composerTopicId, content: composerContent.trim() })
+      .insert({
+        author_id: user.id,
+        topic_id: composerTopicId,
+        content: composerContent.trim(),
+        restaurant_id: taggedRestaurant?.id ?? null,
+      })
       .select(POST_SELECT)
       .returns<Post[]>()
       .single();
@@ -87,6 +118,9 @@ export default function CommunityFeed({ topics }: { topics: Topic[] }) {
       const matchesTopic = activeTopic === "all" || data.topics?.slug === activeTopic;
       if (matchesTopic) setPosts((prev) => [data, ...prev]);
       setComposerContent("");
+      setTaggedRestaurant(null);
+      setRestaurantPickerOpen(false);
+      setRestaurantQuery("");
     }
   }
 
@@ -135,6 +169,70 @@ export default function CommunityFeed({ topics }: { topics: Topic[] }) {
             placeholder="What's happening in Dhaka's food scene?"
             className="w-full resize-none rounded-lg bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
+
+          {taggedRestaurant ? (
+            <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs">
+              <span className="flex min-w-0 items-center gap-1 truncate font-semibold text-primary">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{taggedRestaurant.name}</span>
+              </span>
+              <button type="button" onClick={() => setTaggedRestaurant(null)} className="shrink-0 text-primary/70 hover:text-primary">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : restaurantPickerOpen ? (
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5">
+                <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={restaurantQuery}
+                  onChange={(e) => setRestaurantQuery(e.target.value)}
+                  placeholder="Tag a restaurant (optional)"
+                  className="w-full bg-transparent text-xs outline-none"
+                />
+                <button type="button" onClick={() => setRestaurantPickerOpen(false)} className="shrink-0 text-muted-foreground hover:text-foreground">
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {restaurantQuery.trim() && (
+                <div className="flex max-h-40 flex-col gap-0.5 overflow-y-auto rounded-lg border border-border">
+                  {!restaurantsLoaded ? (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">Loading…</p>
+                  ) : filteredRestaurantOptions.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-muted-foreground">No match.</p>
+                  ) : (
+                    filteredRestaurantOptions.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => {
+                          setTaggedRestaurant(r);
+                          setRestaurantPickerOpen(false);
+                          setRestaurantQuery("");
+                        }}
+                        className="flex flex-col items-start px-3 py-1.5 text-left text-xs hover:bg-muted"
+                      >
+                        <span className="font-medium">{r.name}</span>
+                        <span className="text-[11px] text-muted-foreground">{[r.cuisine, r.area].filter(Boolean).join(" · ")}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setRestaurantPickerOpen(true)}
+              className="flex w-fit items-center gap-1 text-xs font-semibold text-muted-foreground hover:text-primary"
+            >
+              <MapPin className="h-3.5 w-3.5" />
+              Tag a restaurant
+            </button>
+          )}
+
           <div className="flex items-center justify-between gap-2">
             <select
               value={composerTopicId}
