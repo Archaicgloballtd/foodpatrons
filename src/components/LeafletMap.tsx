@@ -81,7 +81,10 @@ export default function LeafletMap({
       : DEFAULT_CENTER;
 
   const center = userLocation ?? averageCenter;
-  const zoom = userLocation ? 14 : 13;
+  // Noticeably tighter zoom once we know exactly where the user is, so
+  // nearby pins are easy to pick out without having to zoom in manually —
+  // 13/14 was still showing most of the neighborhood at once.
+  const zoom = userLocation ? 16 : 13;
 
   return (
     <>
