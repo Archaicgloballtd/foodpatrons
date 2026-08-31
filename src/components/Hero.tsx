@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion, type TargetAndTransition, type Transition } from "motion/react";
 import { MapPin, Search, Sparkles, Compass } from "lucide-react";
 import CategoryChips from "./CategoryChips";
+import SearchSuggestions from "./SearchSuggestions";
 import { useSession } from "@/lib/auth";
+import type { Restaurant } from "@/lib/restaurants";
 
 function FloatingFood({
   src,
@@ -37,12 +39,15 @@ type LocationStatus = "idle" | "loading" | "success" | "error";
 
 export default function Hero({
   onLocationFound,
+  restaurants,
 }: {
   onLocationFound: (location: { lat: number; lng: number }) => void;
+  restaurants: Restaurant[];
 }) {
   const router = useRouter();
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const shouldReduceMotion = useReducedMotion();
   const { user, profile } = useSession();
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
@@ -60,6 +65,10 @@ export default function Hero({
           lng: position.coords.longitude,
         });
         setLocationStatus("success");
+        // Explore auto-detects location on its own mount and sorts nearby —
+        // permission is already granted at this point so that second
+        // request resolves instantly with no new browser prompt.
+        router.push("/explore");
       },
       () => setLocationStatus("error"),
       { timeout: 10000 },
@@ -166,7 +175,7 @@ export default function Hero({
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.45, delay: 0.25 }}
-          className="mx-auto mt-7 flex max-w-lg items-center gap-2 rounded-full border border-border bg-white p-1.5 pl-4 shadow-md shadow-primary/5"
+          className="relative mx-auto mt-7 flex max-w-lg items-center gap-2 rounded-full border border-border bg-white p-1.5 pl-4 shadow-md shadow-primary/5"
           onSubmit={handleSearchSubmit}
         >
           <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -174,6 +183,8 @@ export default function Hero({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setSuggestionsOpen(true)}
+            onBlur={() => setSuggestionsOpen(false)}
             placeholder="Search food, restaurant, offer, or area"
             className="w-full flex-1 bg-transparent py-2.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
           />
@@ -183,6 +194,7 @@ export default function Hero({
           >
             Search
           </button>
+          <SearchSuggestions query={searchQuery} restaurants={restaurants} visible={suggestionsOpen} onSelect={() => setSuggestionsOpen(false)} />
         </motion.form>
 
         {/* Use my location + Explore offers */}

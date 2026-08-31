@@ -10,6 +10,7 @@ import RestaurantMap from "./RestaurantMap";
 import EmptyState from "./EmptyState";
 import LazyMount from "./LazyMount";
 import MeetupsStrip from "./MeetupsStrip";
+import SearchSuggestions from "./SearchSuggestions";
 
 type LocationStatus = "idle" | "loading" | "success" | "error";
 type SortOption = "recommended" | "rating" | "distance" | "name";
@@ -47,6 +48,7 @@ export default function ExploreExperience({
   const [query, setQuery] = useState(initialQuery);
   const [sortBy, setSortBy] = useState<SortOption>("recommended");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 
   const filtered = useMemo(() => {
     let list =
@@ -153,12 +155,14 @@ export default function ExploreExperience({
                 ? "Using your location"
                 : "Use my location"}
           </button>
-          <div className="flex flex-1 items-center gap-2 rounded-full border border-border bg-white px-3 py-2 focus-within:border-primary">
+          <div className="relative flex flex-1 items-center gap-2 rounded-full border border-border bg-white px-3 py-2 focus-within:border-primary">
             <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
             <input
               type="text"
               value={query}
               onChange={(e) => handleQueryChange(e.target.value)}
+              onFocus={() => setSuggestionsOpen(true)}
+              onBlur={() => setSuggestionsOpen(false)}
               placeholder="Search food, restaurant, offer, or area"
               className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
@@ -172,6 +176,7 @@ export default function ExploreExperience({
                 Clear
               </button>
             )}
+            <SearchSuggestions query={query} restaurants={restaurants} visible={suggestionsOpen} onSelect={() => setSuggestionsOpen(false)} />
           </div>
         </div>
         {locationStatus === "error" && (

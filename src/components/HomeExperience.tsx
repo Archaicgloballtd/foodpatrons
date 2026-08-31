@@ -19,7 +19,7 @@ export default function HomeExperience({
   return (
     <>
       <PopupAd />
-      <Hero onLocationFound={setUserLocation} />
+      <Hero onLocationFound={setUserLocation} restaurants={restaurants} />
       {bannerAd && <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">{bannerAd}</div>}
       <MakeFoodFriends />
       <StatsStrip restaurants={restaurants} />
