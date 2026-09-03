@@ -28,8 +28,22 @@ export type PartyMessage = {
   profiles?: { full_name: string | null } | null;
 };
 
+export type PartyRestaurant = {
+  id: string;
+  name: string;
+  area: string | null;
+  cover_image_url: string | null;
+  image_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+export type PartyWithRestaurant = Party & { restaurants: PartyRestaurant | null };
+
 export const PARTY_SELECT =
   "id, restaurant_id, creator_id, title, description, scheduled_for, max_members, status, created_at, party_members(user_id, joined_at, profiles(full_name))";
+
+const PARTY_SELECT_WITH_RESTAURANT = `${PARTY_SELECT}, restaurants(id, name, area, cover_image_url, image_url, latitude, longitude)`;
 
 export async function getOpenPartiesForRestaurant(restaurantId: string): Promise<Party[]> {
   const { data } = await supabase
@@ -42,14 +56,14 @@ export async function getOpenPartiesForRestaurant(restaurantId: string): Promise
   return data ?? [];
 }
 
-export async function getUpcomingParties(limit = 12): Promise<Party[]> {
+export async function getUpcomingParties(limit = 12): Promise<PartyWithRestaurant[]> {
   const { data } = await supabase
     .from("parties")
-    .select(`${PARTY_SELECT}, restaurants(id, name, area, cover_image_url, image_url)`)
+    .select(PARTY_SELECT_WITH_RESTAURANT)
     .eq("status", "open")
     .gte("scheduled_for", new Date().toISOString())
     .order("scheduled_for", { ascending: true })
     .limit(limit)
-    .returns<(Party & { restaurants: { id: string; name: string; area: string | null; cover_image_url: string | null; image_url: string | null } | null })[]>();
+    .returns<PartyWithRestaurant[]>();
   return data ?? [];
 }

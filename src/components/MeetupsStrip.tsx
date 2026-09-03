@@ -3,11 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PartyPopper, Users, Clock, UtensilsCrossed } from "lucide-react";
-import { getUpcomingParties, type Party } from "@/lib/parties";
-
-type PartyWithRestaurant = Party & {
-  restaurants: { id: string; name: string; area: string | null; cover_image_url: string | null; image_url: string | null } | null;
-};
+import { getUpcomingParties, type PartyWithRestaurant } from "@/lib/parties";
 
 function formatWhen(iso: string): string {
   const d = new Date(iso);
@@ -22,7 +18,7 @@ export default function MeetupsStrip() {
 
   useEffect(() => {
     getUpcomingParties(10)
-      .then((data) => setParties(data as PartyWithRestaurant[]))
+      .then((data) => setParties(data))
       .catch(() => setParties([]))
       .finally(() => setLoaded(true));
   }, []);

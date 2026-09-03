@@ -8,6 +8,7 @@ import { useSession } from "@/lib/auth";
 import type { Topic, Post } from "@/lib/community";
 import PostCard from "./PostCard";
 import EmptyState from "./EmptyState";
+import CommunityMeetups from "./CommunityMeetups";
 
 const POST_SELECT =
   "id, author_id, topic_id, content, created_at, like_count, comment_count, restaurant_id, profiles(full_name, is_official), topics(slug, name), restaurants(id, name, area, cover_image_url, image_url)";
@@ -16,7 +17,12 @@ type RestaurantOption = { id: string; name: string; area: string | null; cuisine
 
 export default function CommunityFeed({ topics }: { topics: Topic[] }) {
   const { user, profile } = useSession();
-  const [activeTopic, setActiveTopic] = useState<string>("all");
+  // Community is intentionally not split into a big row of topic tabs —
+  // everything (general chat, meetups) shows together on one page instead
+  // of requiring a click to find. The topic field still exists for the
+  // composer to tag a post with (shown as a badge on the card), it just
+  // isn't used to filter the feed you see.
+  const activeTopic = "all";
   const [posts, setPosts] = useState<Post[]>([]);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -135,29 +141,9 @@ export default function CommunityFeed({ topics }: { topics: Topic[] }) {
         <h1 className="text-xl font-bold text-foreground">Community</h1>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <button
-          type="button"
-          onClick={() => setActiveTopic("all")}
-          className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-            activeTopic === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/70 hover:bg-accent/20"
-          }`}
-        >
-          All
-        </button>
-        {topics.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setActiveTopic(t.slug)}
-            className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
-              activeTopic === t.slug ? "bg-primary text-primary-foreground" : "bg-muted text-foreground/70 hover:bg-accent/20"
-            }`}
-          >
-            {t.name}
-          </button>
-        ))}
-      </div>
+      <CommunityMeetups />
+
+      <h2 className="text-sm font-bold text-foreground">General</h2>
 
       {user ? (
         <form onSubmit={handlePost} className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-3">
