@@ -13,7 +13,6 @@ import {
   readSavedIds,
   type DayPart,
 } from "@/lib/personalization";
-import RestaurantCard from "./RestaurantCard";
 import CuisineArt from "./CuisineArt";
 import MeetupsStrip from "./MeetupsStrip";
 
@@ -42,19 +41,6 @@ function Tile({ restaurant }: { restaurant: Restaurant }) {
   );
 }
 
-function pickScore(r: Restaurant): number {
-  return (
-    (r.cover_image_url || r.image_url ? 4 : 0) +
-    (r.is_featured ? 3 : 0) +
-    (r.offer ? 3 : 0) +
-    (r.rating !== null ? 2 : 0) +
-    (r.description ? 2 : 0) +
-    (r.price_range ? 1 : 0) +
-    (r.phone ? 1 : 0) +
-    (r.opening_hours ? 1 : 0)
-  );
-}
-
 export default function HomeDiscover({ restaurants }: { restaurants: Restaurant[] }) {
   const { user, profile } = useSession();
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
@@ -76,20 +62,6 @@ export default function HomeDiscover({ restaurants }: { restaurants: Restaurant[
   const byId = useMemo(() => new Map(restaurants.map((r) => [r.id, r])), [restaurants]);
   const recent = recentIds.map((id) => byId.get(id)).filter((r): r is Restaurant => !!r);
   const saved = savedIds.map((id) => byId.get(id)).filter((r): r is Restaurant => !!r);
-
-  const picks = useMemo(() => {
-    const perArea = new Map<string, number>();
-    const chosen: Restaurant[] = [];
-    const ranked = [...restaurants].sort((a, b) => pickScore(b) - pickScore(a) || a.name.localeCompare(b.name));
-    for (const r of ranked) {
-      const area = normalizeArea(r.area) || "—";
-      if ((perArea.get(area) ?? 0) >= 2) continue; // keep the picks spread across the city, not one neighborhood
-      perArea.set(area, (perArea.get(area) ?? 0) + 1);
-      chosen.push(r);
-      if (chosen.length === 6) break;
-    }
-    return chosen;
-  }, [restaurants]);
 
   const areas = useMemo(() => {
     const counts = new Map<string, number>();
@@ -180,25 +152,6 @@ export default function HomeDiscover({ restaurants }: { restaurants: Restaurant[
       )}
 
       <MeetupsStrip />
-
-      {picks.length > 0 && (
-        <div>
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-bold text-foreground">A few places to start</h2>
-              <p className="text-sm text-muted-foreground">Spots with the fullest details, spread across the city.</p>
-            </div>
-            <Link href="/explore" className="shrink-0 text-sm font-semibold text-primary hover:underline">
-              See all {restaurants.length}
-            </Link>
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {picks.map((r) => (
-              <RestaurantCard key={r.id} restaurant={r} />
-            ))}
-          </div>
-        </div>
-      )}
 
       {areas.length > 0 && (
         <div>
