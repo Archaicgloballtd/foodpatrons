@@ -87,7 +87,18 @@ export default function Hero({
       : { duration, delay, repeat: Infinity, repeatType: "mirror" as const, ease: "easeInOut" as const };
 
   return (
-    <section className="relative overflow-hidden border-b border-border bg-gradient-to-br from-orange-50 via-white to-purple-50/60 px-4 pb-0 pt-14 text-center sm:px-6 sm:pt-20">
+    <section className="relative overflow-hidden border-b border-border bg-secondary px-4 pb-0 pt-14 text-center sm:px-6 sm:pt-20">
+      {/* Brand poster as the hero backdrop. The file is pre-cropped to just
+          the group photo (the poster's own headline and app-store badges are
+          cut off) so it stays clean at any screen width, then tinted with the
+          brand navy so the heading and search bar on top stay readable. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-cover bg-no-repeat"
+        style={{ backgroundImage: "url(/brand/hero-people.jpg)", backgroundPosition: "center 6%" }}
+      />
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-secondary/90 via-secondary/75 to-secondary/90" />
+
       {/* Decorative floating shapes — bigger and more colorful */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
         <motion.div
@@ -153,7 +164,7 @@ export default function Hero({
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.05 }}
-          className="mx-auto mt-4 max-w-2xl text-4xl font-extrabold tracking-tight text-foreground sm:text-6xl"
+          className="mx-auto mt-4 max-w-2xl text-4xl font-extrabold tracking-tight text-white sm:text-6xl"
         >
           Where do you want to{" "}
           <span className="bg-gradient-to-r from-primary via-orange-500 to-brand-coral bg-clip-text text-transparent">
@@ -165,7 +176,7 @@ export default function Hero({
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="mx-auto mt-3 max-w-xl text-base text-muted-foreground sm:mt-4 sm:text-lg"
+          className="mx-auto mt-3 max-w-xl text-base text-white/85 sm:mt-4 sm:text-lg"
         >
           Discover nearby restaurants, live offers, and tables in a few clicks.
         </motion.p>
@@ -210,7 +221,7 @@ export default function Hero({
           </button>
           <Link
             href="/offers"
-            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground shadow-sm transition-transform hover:bg-secondary/90 active:scale-95"
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground shadow-sm ring-1 ring-white/40 transition-transform hover:bg-secondary/90 active:scale-95"
           >
             <Compass className="h-4 w-4" />
             Explore offers
@@ -218,12 +229,12 @@ export default function Hero({
         </div>
 
         {locationStatus === "success" && (
-          <p className="mt-2 text-xs font-medium text-secondary">
-            Location found — sorting nearby picks below.
+          <p className="mt-2 text-xs font-medium text-emerald-300">
+            Location found — taking you to restaurants near you…
           </p>
         )}
         {locationStatus === "error" && (
-          <p className="mt-2 text-xs font-medium text-destructive">
+          <p className="mt-2 text-xs font-medium text-red-300">
             Couldn&apos;t access your location. Check your browser permissions.
           </p>
         )}
