@@ -69,7 +69,7 @@ export default function Hero({
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-cover bg-no-repeat"
-        style={{ backgroundImage: "url(/brand/hero-people-v2.jpg)", backgroundPosition: "center 6%" }}
+        style={{ backgroundImage: "url(/brand/hero-people-v3.jpg)", backgroundPosition: "center 6%" }}
       />
       {/* Light at the top so the faces read clearly, deepening toward the
           text and search bar so they stay legible. */}
