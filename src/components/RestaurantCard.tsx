@@ -4,12 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { MapPin, Clock, CalendarCheck, Tag, UtensilsCrossed, Heart, Share2, Check } from "lucide-react";
+import { MapPin, Clock, CalendarCheck, Tag, Heart, Share2, Check } from "lucide-react";
 import type { Restaurant } from "@/lib/restaurants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import RatingBadge from "./RatingBadge";
 import BudgetBadge from "./BudgetBadge";
+import CuisineArt from "./CuisineArt";
 import ReservationModal from "./ReservationModal";
 import ClaimOfferModal from "./ClaimOfferModal";
 
@@ -128,9 +129,7 @@ export default function RestaurantCard({
                 />
               </>
             ) : (
-              <div className="flex h-full items-center justify-center bg-muted text-5xl">
-                <UtensilsCrossed className="h-10 w-10 text-primary/50" />
-              </div>
+              <CuisineArt cuisine={restaurant.cuisine} name={restaurant.name} area={restaurant.area} />
             )}
             <Badge
               className={`absolute left-2 top-2 ${

@@ -9,13 +9,13 @@ import {
   MessageCircle,
   Tag,
   CalendarCheck,
-  UtensilsCrossed,
 } from "lucide-react";
 import type { Restaurant } from "@/lib/restaurants";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import RatingBadge from "./RatingBadge";
 import BudgetBadge from "./BudgetBadge";
+import CuisineArt from "./CuisineArt";
 import RestaurantMap from "./RestaurantMap";
 import ReservationModal from "./ReservationModal";
 import ClaimOfferModal from "./ClaimOfferModal";
@@ -49,9 +49,7 @@ export default function RestaurantProfile({ restaurant }: { restaurant: Restaura
             />
           </>
         ) : (
-          <div className="flex h-full items-center justify-center bg-muted">
-            <UtensilsCrossed className="h-14 w-14 text-primary/50" />
-          </div>
+          <CuisineArt cuisine={restaurant.cuisine} name={restaurant.name} area={restaurant.area} />
         )}
         <Badge
           className={`absolute left-3 top-3 ${
