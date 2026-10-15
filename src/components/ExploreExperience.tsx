@@ -238,7 +238,7 @@ export default function ExploreExperience({
         <div className="mt-6">
           <h2 className="text-lg font-bold text-foreground">
             {filtered.length} restaurant{filtered.length === 1 ? "" : "s"}
-            {category !== "All" ? ` · ${category}` : ""}
+            {category !== "All" ? ` · ${categories.find((c) => c.key === category)?.label ?? category}` : ""}
           </h2>
 
           {/* Sort tiles — tap to arrange, instead of a dropdown */}

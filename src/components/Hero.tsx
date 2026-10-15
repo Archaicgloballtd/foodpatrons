@@ -3,39 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion, useReducedMotion, type TargetAndTransition, type Transition } from "motion/react";
+import { motion } from "motion/react";
 import { MapPin, Search, Sparkles, Compass } from "lucide-react";
 import CategoryChips from "./CategoryChips";
 import SearchSuggestions from "./SearchSuggestions";
 import { useSession } from "@/lib/auth";
 import type { Restaurant } from "@/lib/restaurants";
 
-function FloatingFood({
-  src,
-  alt,
-  className,
-  sizeClass,
-  animate,
-  transition,
-}: {
-  src: string;
-  alt: string;
-  className: string;
-  sizeClass: string;
-  animate: TargetAndTransition | Record<string, never>;
-  transition: Transition;
-}) {
-  return (
-    <motion.div className={className} animate={animate} transition={transition}>
-      <div className={`${sizeClass} aspect-square overflow-hidden rounded-full shadow-xl shadow-black/10 ring-4 ring-white/80`}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- local decorative sticker, no next/image benefit */}
-        <img src={src} alt={alt} className="h-full w-full scale-[1.35] object-cover" />
-      </div>
-    </motion.div>
-  );
-}
-
 type LocationStatus = "idle" | "loading" | "success" | "error";
+
+// Keeps white text readable on top of the photo without needing a heavy
+// overlay (which is what hid the faces before).
+const TEXT_SHADOW = "[text-shadow:0_1px_10px_rgba(10,15,45,0.55)]";
 
 export default function Hero({
   onLocationFound,
@@ -48,7 +27,6 @@ export default function Hero({
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
   const { user, profile } = useSession();
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
 
@@ -81,80 +59,31 @@ export default function Hero({
     router.push(q ? `/explore?q=${encodeURIComponent(q)}` : "/explore");
   }
 
-  const floatTransition = (duration: number, delay = 0) =>
-    shouldReduceMotion
-      ? { duration: 0 }
-      : { duration, delay, repeat: Infinity, repeatType: "mirror" as const, ease: "easeInOut" as const };
-
   return (
-    <section className="relative overflow-hidden border-b border-border bg-secondary px-4 pb-0 pt-14 text-center sm:px-6 sm:pt-20">
+    // Generous top padding on purpose: the group photo's faces sit at the top
+    // of the backdrop, and the heading starts below them instead of over them.
+    <section className="relative overflow-hidden border-b border-border bg-secondary px-4 pb-0 pt-44 text-center sm:px-6 sm:pt-52">
       {/* Brand poster as the hero backdrop. The file is pre-cropped to just
           the group photo (the poster's own headline and app-store badges are
-          cut off) so it stays clean at any screen width, then tinted with the
-          brand navy so the heading and search bar on top stay readable. */}
+          cut off) so it stays clean at any screen width. */}
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-cover bg-no-repeat"
         style={{ backgroundImage: "url(/brand/hero-people.jpg)", backgroundPosition: "center 6%" }}
       />
-      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-secondary/90 via-secondary/75 to-secondary/90" />
-
-      {/* Decorative floating shapes — bigger and more colorful */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <motion.div
-          className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-brand-purple/25 blur-3xl"
-          animate={shouldReduceMotion ? {} : { y: [0, -28, 0], x: [0, 18, 0] }}
-          transition={floatTransition(8)}
-        />
-        <motion.div
-          className="absolute -right-20 top-10 h-96 w-96 rounded-full bg-primary/25 blur-3xl"
-          animate={shouldReduceMotion ? {} : { y: [0, 24, 0], x: [0, -14, 0] }}
-          transition={floatTransition(9, 0.5)}
-        />
-        <motion.div
-          className="absolute -bottom-10 left-1/4 h-64 w-64 rounded-full bg-brand-turquoise/25 blur-3xl"
-          animate={shouldReduceMotion ? {} : { y: [0, -22, 0] }}
-          transition={floatTransition(7, 1)}
-        />
-        <motion.div
-          className="absolute right-1/4 top-0 h-40 w-40 rounded-full bg-brand-sunny/30 blur-3xl"
-          animate={shouldReduceMotion ? {} : { y: [0, 18, 0] }}
-          transition={floatTransition(6, 0.3)}
-        />
-
-        {/* Floating food stickers — bigger, brought in closer to center, hidden on small screens to keep mobile text-focused */}
-        <FloatingFood
-          src="/canva/food-burger.png"
-          alt=""
-          sizeClass="w-24 sm:w-32 lg:w-36"
-          className="absolute left-[14%] top-[8%] hidden opacity-95 sm:block"
-          animate={shouldReduceMotion ? {} : { y: [0, -22, 0], rotate: [-9, 9, -9], scale: [1, 1.05, 1] }}
-          transition={floatTransition(6.5)}
-        />
-        <FloatingFood
-          src="/canva/food-pizza.png"
-          alt=""
-          sizeClass="w-24 sm:w-28 lg:w-32"
-          className="absolute right-[15%] top-[4%] hidden opacity-95 sm:block"
-          animate={shouldReduceMotion ? {} : { y: [0, 20, 0], rotate: [11, -11, 11], scale: [1, 1.05, 1] }}
-          transition={floatTransition(7.5, 0.4)}
-        />
-        <FloatingFood
-          src="/canva/food-drink.png"
-          alt=""
-          sizeClass="w-20 sm:w-28 lg:w-32"
-          className="absolute left-[17%] top-[46%] hidden opacity-95 md:block"
-          animate={shouldReduceMotion ? {} : { y: [0, -18, 0], rotate: [-7, 7, -7], scale: [1, 1.05, 1] }}
-          transition={floatTransition(6, 0.8)}
-        />
-      </div>
+      {/* Light at the top so the faces read clearly, deepening toward the
+          text and search bar so they stay legible. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-b from-secondary/5 via-secondary/30 to-secondary/70"
+      />
 
       <div className="relative">
         <motion.span
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
-          className="inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-secondary shadow-sm ring-1 ring-border backdrop-blur"
+          className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3.5 py-1.5 text-xs font-semibold text-secondary shadow-sm ring-1 ring-border backdrop-blur"
         >
           <Sparkles className="h-3.5 w-3.5 text-primary" />
           {user ? `Welcome back${firstName ? `, ${firstName}` : ""}!` : "Bangladesh's liveliest food & events guide"}
@@ -164,19 +93,19 @@ export default function Hero({
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.05 }}
-          className="mx-auto mt-4 max-w-2xl text-4xl font-extrabold tracking-tight text-white sm:text-6xl"
+          className={`mx-auto mt-4 max-w-2xl text-4xl font-extrabold tracking-tight text-white sm:text-6xl ${TEXT_SHADOW}`}
         >
           Where do you want to{" "}
-          <span className="bg-gradient-to-r from-primary via-orange-500 to-brand-coral bg-clip-text text-transparent">
-            eat
-          </span>{" "}
+          {/* Same yellow as the poster's own headline — the brand orange
+              vanishes into the poster's orange backdrop. */}
+          <span className="text-brand-sunny">eat</span>{" "}
           today?
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.15 }}
-          className="mx-auto mt-3 max-w-xl text-base text-white/85 sm:mt-4 sm:text-lg"
+          className={`mx-auto mt-3 max-w-xl text-base text-white sm:mt-4 sm:text-lg ${TEXT_SHADOW}`}
         >
           Discover nearby restaurants, live offers, and tables in a few clicks.
         </motion.p>
@@ -205,7 +134,12 @@ export default function Hero({
           >
             Search
           </button>
-          <SearchSuggestions query={searchQuery} restaurants={restaurants} visible={suggestionsOpen} onSelect={() => setSuggestionsOpen(false)} />
+          <SearchSuggestions
+            query={searchQuery}
+            restaurants={restaurants}
+            visible={suggestionsOpen}
+            onSelect={() => setSuggestionsOpen(false)}
+          />
         </motion.form>
 
         {/* Use my location + Explore offers */}
@@ -229,19 +163,20 @@ export default function Hero({
         </div>
 
         {locationStatus === "success" && (
-          <p className="mt-2 text-xs font-medium text-emerald-300">
+          <p className={`mt-2 text-xs font-semibold text-emerald-200 ${TEXT_SHADOW}`}>
             Location found — taking you to restaurants near you…
           </p>
         )}
         {locationStatus === "error" && (
-          <p className="mt-2 text-xs font-medium text-red-300">
+          <p className={`mt-2 text-xs font-semibold text-red-200 ${TEXT_SHADOW}`}>
             Couldn&apos;t access your location. Check your browser permissions.
           </p>
         )}
 
-        {/* Category chips */}
+        {/* Food-type chips — each opens Explore filtered to that food, and
+            Explore orders results nearest-first once it knows where you are. */}
         <div className="mx-auto mt-7 max-w-4xl pb-12 sm:pb-16">
-          <CategoryChips />
+          <CategoryChips wrap />
         </div>
       </div>
     </section>

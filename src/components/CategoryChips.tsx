@@ -4,9 +4,15 @@ import Link from "next/link";
 import { motion } from "motion/react";
 import { categories } from "@/lib/categories";
 
-export default function CategoryChips({ activeKey }: { activeKey?: string }) {
+export default function CategoryChips({ activeKey, wrap = false }: { activeKey?: string; wrap?: boolean }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div
+      className={
+        wrap
+          ? "flex flex-wrap justify-center gap-2"
+          : "flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      }
+    >
       {categories.map(({ key, label, icon: Icon }, i) => {
         const active = activeKey === key;
         return (
